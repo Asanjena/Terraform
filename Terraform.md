@@ -1,11 +1,5 @@
-## Terraform 
 
-(add diagram)
-
-(explain what it is)
-
-
-## Downlaod Terraform
+## Downlaoding Terraform
 
 1. You can go online and download terraform for your machine
 2. You then need to make an environment variable. Use this guide: https://spacelift.io/blog/how-to-install-terraform
