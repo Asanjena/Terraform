@@ -1,147 +1,165 @@
-# To create a service on AWS cloud 
-# launch an ec2 in Ireland 
-# terraform to download the required packages/ dependencies
-# terraform init (command to run)
+# To create a service on aws
+
+# Launch an ec2 in Ireland
+
+# Terraform to download required packages
+
+# Terraform init
 
 provider "aws" {
-# which region of AWS
-	region = "eu-west-1"
 
-}
-# gitbash mush have admin access
-# Launch an ec2
-
-# which resource (let terraform know) - 
-resource "aws_instance" "app_instance"{
-
-# which AMI - ubuntu 18.04
-	ami = "ami-00e8ddf087865b27f"
-
-# type of instance t2.micro
-	instance_type = "t2.micro"	
-
-# do you need public ip = yes
-	associate_public_ip_address = true
-
-# what would you like to call it 
-	tags = {
-             Name = "alema-tech230-terraform-app"
-	}	
+# Which regions
+        region = "eu-west-1"
 }
 
-# vpc
-resource "aws_vpc" "alema_tf_vpc" {
-    cidr_block     = "10.0.0.0/16"
-    instance_tenancy = "default"
 
-    tags = {
+# Create VPC
 
-      Name = "tech230_alema_vpc_tf"
-    }
+resource "aws_vpc" "main" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
 
-}
-
-resource "aws_internet_gateway" "tech230_alema_tf_igw" {
-  vpc_id = aws_vpc.alema_tf_vpc.id
 
   tags = {
-    Name = "tech230_alema_tf_igw"
+    Name = "tech230-alema-tf-vpc"
   }
 }
 
 
-resource "aws_subnet" "tech230_alema_tf_vpc_public_sn" {
-  vpc_id     = aws_vpc.alema_tf_vpc.id
+# Create internet gateway
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "tech230-alema-tf-igw"
+  }
+}
+
+
+# Create subnets
+resource "aws_subnet" "public" {
+  vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.2.0/24"
+  availability_zone = "eu-west-1a"
 
   tags = {
-    Name = "tech230_alema_tf_vpc_public_sn"
-    }
+    Name = "tech230-shaleka-terraform-public_subnet"
+  }
 }
 
-resource "aws_security_group" "tech230_alema_sg_app" {
-  name        = "tech230_alema_tf_sg_app"
-  description = "Allow inbound traffic"
-  vpc_id = aws_vpc.alema_tf_vpc.id
-  
-  ingress {
-    description      = "access to the app"
-    from_port        = "80"
-    to_port          = "80"
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    
-  }
-  # ssh access
-  ingress {
-    description      = "ssh access"
-    from_port        = "22"
-    to_port          = "22"
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-   
-  }
- # Allow port 3000 from anywhere
-  ingress {
-    from_port        = "3000"
-    to_port          = "3000"
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
+resource "aws_subnet" "private" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.3.0/24"
+  availability_zone = "eu-west-1b"
 
-    }
+  tags = {
+    Name = "tech230-alema-tf-private_subnet"
+  }
+}
 
-egress {
+# Set a route table
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+
+  }
+
+  route {
+    ipv6_cidr_block        = "::/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "tech230-alema-tf-RT-Public"
+  }
+}
+
+# Associate route table
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+# Create security group
+resource "aws_security_group" "ssh_HTTP_3000" {
+  name        = "allow_ssh_HTTP_3000"
+  description = "Allow ssh_HTTP_3000"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description      = "SSH"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "TCP"
+    cidr_blocks      = ["10.0.0.0/16"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description      = "HTTP"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "TCP"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    description      = "3000"
+    from_port        = 3000
+    to_port          = 3000
+    protocol         = "TCP"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
     from_port        = 0
     to_port          = 0
-    protocol         = "-1" 
+    protocol         = "-1"
     cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
-
-      tags = {
-        Name = "tech230_alema_tf_sg_app"
-    }
-}
-
-resource "aws_route_table" "tech230_alema_tf_rt" {
-vpc_id = aws_vpc.alema_tf_vpc.id
-
-route  {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.tech230_alema_tf_igw.id
-    }
-
- tags = {
-     Name = "tech230_alema_tf_rt"
-  }
-}
-
-resource "aws_route_table_association" "tech230_alema_tf_subnet_association" {
-  route_table_id = aws_route_table.tech230_alema_tf_rt.id
-  subnet_id = aws_subnet.tech230_alema_tf_vpc_public_sn.id
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-resource "aws_subnet" "tech230_alema_tf_vpc_private_sn" {
-  vpc_id     = aws_vpc.alema_tf_vpc.id
-  cidr_block = "10.0.3.0/24"
 
   tags = {
-    Name = "tech230_alema_tf_vpc_private_sn"
+    Name = "allow_ssh_HTTP_3000_tf"
+  }
+}
+
+# gitbash must have admi access
+
+# launch an ec2
+
+# which rescource
+
+resource “aws_instance” “app_instance”{
+
+#which ami
+
+	ami = ami-00e8ddf087865b27f
+
+#which type of instance t2.micro
+
+	instance_type = “t2.micro”
+
+#do you need public ip = yes
+
+associate_public_ip_address = true
+
+# Connect VPC to SG
+
+vpc_security_group_ids = [aws_security_group.ssh_HTTP_3000.id]  
+
+# Specify the public subnet ID where you want the instance to be launched
+
+subnet_id = aws_subnet.public.id  
+
+# what would you like to call it
+
+	tags  = {
+		Name = “alema-tech230-tf-app"
     }
 }

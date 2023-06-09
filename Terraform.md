@@ -203,7 +203,7 @@ resource "aws_security_group" "tech230_alema_sg_app" {
     from_port        = "22"
     to_port          = "22"
     protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
+    cidr_blocks      = ["<my-ip>/32"] # <my-ip> with actual IP
 
  }
  # Allow port 3000 from anywhere
@@ -227,6 +227,48 @@ egress {
     }
 }
 
+# Inbound rule for MongoDB access from private subnet
+	ingress {
+		from_port   = 27017
+		to_port     = 27017
+		protocol    = "tcp"
+		# specifies private subnet CIDR block for connecting with DB
+		cidr_blocks = ["10.0.3.0/24"]
+	}
+
+	# Outbound rule allowing all traffic
+	egress {
+		from_port   = 0
+		to_port     = 0
+		protocol    = "-1"
+    # all access allowed
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+}
+
+# Create security group for DB server
+resource "aws_security_group" "tech230-alema-db-sg" {
+	name        = "tech230-alema-db-sg"
+	description = "SG for MongoDB server"
+	vpc_id      = aws_vpc.alema_tf_vpc.id
+
+	# Inbound rule - MongoDB access from app server (public subnet)
+	ingress {
+		from_port        = 27017
+		to_port          = 27017
+		protocol         = "tcp"
+		cidr_blocks = ["10.0.2.0/24"]
+	}
+
+	# Outbound rule allowing all traffic
+	egress {
+		from_port   = 0
+		to_port     = 0
+		protocol    = "-1"
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+}
+
 resource "aws_route_table" "tech230_alema_tf_rt" {
 vpc_id = aws_vpc.alema_tf_vpc.id
 
@@ -244,3 +286,12 @@ resource "aws_route_table_association" "tech230_alema_tf_subnet_association" {
   route_table_id = aws_route_table.tech230_alema_tf_rt.id
   subnet_id = aws_subnet.tech230_alema_tf_vpc_public_sn.id
 }
+
+```
+
+
+![Alt text](Images/ec2.PNG)
+
+
+![Alt text](Images/vpc.PNG)
+
