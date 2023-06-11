@@ -1,6 +1,7 @@
 
 ## Using Terraform for the Sparta App
 
+```
 # Provider block specifying the AWS provider and the region
 provider "aws" {
   region = "eu-west-1"
@@ -200,6 +201,8 @@ user_data = <<-EOF
 
   }
 }
+
+```
 
 ![Alt text](Images/tf4-1.PNG)
 
