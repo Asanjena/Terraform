@@ -34,7 +34,7 @@ resource "aws_subnet" "tech230-alema-app-public-subnet" {
   }
 }
 
-# Creating a private subnet within the VPC (database)
+# Creating a private subnet (database)
 resource "aws_subnet" "tech230-alema-private-subnet" {
   vpc_id            = aws_vpc.tech230-alema-tf-vpc.id
   cidr_block        = "10.0.3.0/24"
